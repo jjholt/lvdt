@@ -1,9 +1,10 @@
+use nalgebra::{Isometry3, UnitQuaternion, Vector3};
+
 use calibration::LVDT;
-
 mod calibration;
-fn main() {
 
+fn main() {
     let lvdt = LVDT::new();
-    println!("{}", lvdt.translations());
-    println!("{}", lvdt.rotations());
+    println!("Translations: {}", lvdt.translations());
+    println!("Rotations: {}", lvdt.rotations());
 }

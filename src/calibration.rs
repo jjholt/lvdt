@@ -1,9 +1,12 @@
-use na::{Matrix6, MatrixView3};
+use na::{Matrix6, MatrixView3, UnitQuaternion};
 use nalgebra as na;
 
 #[allow(clippy::upper_case_acronyms)]
 pub struct LVDT {
-    matrix: Matrix6<f64>,
+    /// The matrix that represents six degrees of freedom [x,y,z, Rx, Ry, Rz] is, in order,
+    /// [medial-lateral, proximal-distal, anterior-posterior, flexion-extension, internal-external,
+    /// varus-valgus]
+    pub matrix: Matrix6<f64>,
 }
 
 impl LVDT {
@@ -16,24 +19,49 @@ impl LVDT {
         self.matrix.fixed_view::<3, 3>(0, 0)
     }
     pub fn rotations(&self) -> MatrixView3<f64, na::Const<1>, na::Const<6>> {
-        self.matrix.fixed_view::<3, 3>(3, 0)
+        self.matrix.fixed_view::<3, 3>(3, 3)
     }
+    /// Returns a view into the matrix that corresponds to the medial-lateral axis.
     pub fn x(&self) {
-        todo!();
+        self.medial_lateral()
     }
+    /// Rotation about the x-axis (medial-lateral). Returns flexion-extension rotation.
+    pub fn rx(&self) {
+        self.flexion_extension()
+    }
+    /// Returns a view into the matrix that corresponds to the proximal-distal axis.
     pub fn y(&self) {
-        todo!();
+        self.proximal_distal()
     }
+    /// Rotation about the y-axis (proximal-distal). Returns internal-external rotation.
+    pub fn ry(&self) {
+        self.internal_external()
+    }
+    /// Returns a view into the matrix that corresponds to the anterior-posterior axis.
     pub fn z(&self) {
+        self.anterior_posterior()
+    }
+    /// Rotation about the z-axis (anterior-posterior). Returns varus-valgus rotation.
+    pub fn rz(&self) {
+        self.varus_valgus()
+    }
+    pub fn varus_valgus(&self) {
         todo!();
     }
-    pub fn ap(&self) {
+    pub fn flexion_extension(&self) {
         todo!();
     }
-    pub fn ml(&self) {
+    pub fn internal_external(&self) {
         todo!();
     }
-    pub fn ie(&self) {
+
+    pub fn anterior_posterior(&self) {
+        todo!();
+    }
+    pub fn medial_lateral(&self) {
+        todo!();
+    }
+    pub fn proximal_distal(&self) {
         todo!();
     }
 }
