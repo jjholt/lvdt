@@ -1,5 +1,5 @@
 use na::{Matrix6, MatrixView3, UnitQuaternion};
-use nalgebra as na;
+use nalgebra::{self as na, Normed, Point3};
 
 #[allow(clippy::upper_case_acronyms)]
 pub struct LVDT {
@@ -10,9 +10,9 @@ pub struct LVDT {
 }
 
 impl LVDT {
-    pub fn new() -> LVDT {
+    pub fn new(measurements: &[f64; 3]) -> LVDT {
         Self {
-            matrix: Matrix6::identity(),
+            matrix: Matrix6::identity()
         }
     }
     pub fn translations(&self) -> MatrixView3<f64, na::Const<1>, na::Const<6>> {
@@ -29,21 +29,21 @@ impl LVDT {
     pub fn rx(&self) {
         self.flexion_extension()
     }
-    /// Returns a view into the matrix that corresponds to the proximal-distal axis.
-    pub fn y(&self) {
-        self.proximal_distal()
-    }
-    /// Rotation about the y-axis (proximal-distal). Returns internal-external rotation.
-    pub fn ry(&self) {
-        self.internal_external()
-    }
     /// Returns a view into the matrix that corresponds to the anterior-posterior axis.
-    pub fn z(&self) {
+    pub fn y(&self) {
         self.anterior_posterior()
     }
-    /// Rotation about the z-axis (anterior-posterior). Returns varus-valgus rotation.
-    pub fn rz(&self) {
+    /// Rotation about the y-axis (anterior-posterior). Returns varus-valgus rotation.
+    pub fn ry(&self) {
         self.varus_valgus()
+    }
+    /// Returns a view into the matrix that corresponds to the proximal-distal axis.
+    pub fn z(&self) {
+        self.proximal_distal()
+    }
+    /// Rotation about the z-axis (proximal-distal). Returns internal-external rotation.
+    pub fn rz(&self) {
+        self.internal_external()
     }
     pub fn varus_valgus(&self) {
         todo!();
