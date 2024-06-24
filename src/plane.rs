@@ -28,7 +28,8 @@ impl Plane {
         }
     }
 
-    pub fn transform_to(&self, other: &Plane) -> Matrix4<f64> {
+    // pub fn transform_to(&self, other: &Plane) -> Matrix4<f64> {
+    pub fn transform_to(&self, other: &Plane) -> Isometry3<f64> {
         let rotation = {
             let axis = na::Unit::new_normalize(self.normal.cross(&other.normal));
             let angle = self.normal.dot(&other.normal);
@@ -36,6 +37,7 @@ impl Plane {
         };
         let translation = Translation3::from(other.points[0] - rotation*self.points[0]);
 
-        Isometry3::from_parts(translation, rotation).to_matrix()
+        // Isometry3::from_parts(translation, rotation).to_matrix()
+        Isometry3::from_parts(translation, rotation)
     }
 }
