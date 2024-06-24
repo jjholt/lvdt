@@ -1,7 +1,5 @@
-use std::iter::zip;
-
 use nalgebra::{
-    self as na, Isometry3, Matrix4, Point3, Rotation3, Translation3, UnitQuaternion, UnitVector3
+    self as na, Isometry3, Matrix4, Point3, Translation3, UnitQuaternion, UnitVector3
 };
 
 #[derive(Debug)]
