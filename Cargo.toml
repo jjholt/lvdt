@@ -4,5 +4,6 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
+float-cmp = "0.9.0"
 nalgebra = "0.32.6"
 plotters = "0.3.6"
