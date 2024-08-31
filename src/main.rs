@@ -120,12 +120,6 @@ mod test {
     }
     #[test]
     fn reads_calibration() {
-        let text = b"
-r1,r2,r3,
-1.0,1.0,1.0,
-1.05,1.0,1.0,
-1.03,1.0,1.0,
-            ";
         // let mut rdr = csv::Reader::from_reader(rdr)
         let calibration =
             deserialise("calibration.csv".into()).expect("Unable to start calibration");
@@ -155,6 +149,7 @@ r1,r2,r3,
         // let rotation = plane.new_reading(&input[1]);
 
         let isometry0 = plane.isometry_to(&plane1);
+        assert_relative_eq!(isometry0, na::Isometry3::translation(0.0, 0.0, 0.0));
         let isometry1 = plane.isometry_to(&translation);
         assert_relative_eq!(isometry1, na::Isometry3::translation(0.0, 0.0, 0.3));
     }

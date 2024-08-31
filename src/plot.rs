@@ -1,8 +1,9 @@
-use nalgebra::{Isometry3, Matrix3, Matrix4, Point3, Vector4};
+use nalgebra::{Isometry3, Point3};
 use plotters::prelude::*;
 
-use crate::plane::{CartesianCoefficients, Plane};
+use crate::plane::CartesianCoefficients;
 
+#[allow(unused)]
 pub fn plot(
     filename: &str,
     isometry: Isometry3<f64>,

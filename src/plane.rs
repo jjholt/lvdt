@@ -1,5 +1,5 @@
 use nalgebra::{
-    self as na, Isometry3, Matrix3, Point2, Point3, Translation3, UnitQuaternion,
+    Isometry3, Point2, Point3, Translation3, UnitQuaternion,
     UnitVector3
 };
 use serde::{Deserialize, Serialize};
@@ -13,29 +13,13 @@ pub struct Plane {
     pub normal: UnitVector3<f64>,
     pub points: Vec<Point3<f64>>,
 }
+#[allow(unused)]
 #[derive(Debug)]
 pub struct CartesianCoefficients {
     pub a: f64,
     pub b: f64,
     pub c: f64,
     pub d: f64,
-}
-
-pub struct PlaneCalibration(Matrix3<f64>);
-
-impl PlaneCalibration {
-    pub fn from_vec(points: &[f64; 6]) -> Self {
-        let data = points
-            .chunks(2)
-            .flat_map(|c| vec![c[0], c[1], 0.0])
-            .collect();
-        PlaneCalibration(Matrix3::from_vec(data))
-    }
-
-    pub fn from_points(points: &[Point2<f64>; 3]) -> PlaneCalibration {
-        let data = points.iter().flat_map(|c| vec![c.x, c.y, 0.0]).collect();
-        PlaneCalibration(Matrix3::from_vec(data))
-    }
 }
 
 impl Plane {
@@ -48,6 +32,7 @@ impl Plane {
     /// 1       |  1.0  |  2.0  |   =>  |  1.0  |  2.0 |  0.0 |
     /// 2       |  3.0  |  4.0  |       |  3.0  |  4.0 |  0.0 |
     /// 3       |  5.0  |  6.0  |       |  5.0  |  6.0 |  0.0 |
+    #[allow(unused)]
     pub fn from_vec(points: &[f64; 6]) -> Self {
         let points3: Vec<Point3<f64>> = points
             .chunks(2)
@@ -67,10 +52,6 @@ impl Plane {
             normal: Self::normal_from_points(&points3),
             points: points3,
         }
-    }
-    pub fn as_matrix(&self) -> Matrix3<f64> {
-        let v = self.points.iter().flat_map(|f| f.coords.iter().cloned());
-        Matrix3::from_iterator(v)
     }
     pub fn new_reading(&self, measurements: &Measurement) -> Plane {
         let mut points = self.points.clone();
@@ -98,12 +79,14 @@ impl Plane {
         Isometry3::from_parts(translation, rotation)
     }
 
+    #[allow(unused)]
     pub fn apply_isometry(&self, isometry: &Isometry3<f64>) -> Plane {
         let normal = isometry * self.normal;
         let points = self.points.iter().map(|p| isometry * p).collect();
         Plane { normal, points }
     }
 
+    #[allow(unused)]
     pub fn cartesian_coefficients(&self) -> CartesianCoefficients {
         let d = self.points[0] // Use iterator here. Structure was changed from array to vector
             .iter()
@@ -121,20 +104,5 @@ impl Plane {
         let v1 = points[2] - points[0];
         let v2 = points[1] - points[0];
         na::Unit::new_normalize(v1.cross(&v2))
-    }
-}
-
-#[cfg(test)]
-mod test {
-    use super::*;
-
-    #[test]
-    fn creates_calibration_plane() {
-        let test = PlaneCalibration::from_vec(&[0.0, 1.0, 2.0, 3.0, 4.0, 5.0]);
-        PlaneCalibration::from_points(&[
-            Point2::new(0.0, 0.0),
-            Point2::new(0.0, 10.0),
-            Point2::new(10.0, 0.0),
-        ]);
     }
 }
