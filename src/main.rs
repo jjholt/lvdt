@@ -34,10 +34,10 @@ struct Config {
 
 fn main() {
     let args = Args::parse();
-    let calibration = deserialise(args.calibration.into()).unwrap();
+    let calibration = deserialise(args.calibration.into()).expect("Calibration data could not be deserialised");
 
     let yaml = fs::read_to_string("config.yaml").expect("Missing config.yaml file in root");
-    let config: Config = serde_yaml::from_str(&yaml).unwrap();
+    let config: Config = serde_yaml::from_str(&yaml).expect("Unable to deserialise the configuration file");
     let base_plane = config.screws;
     let implant = config.implant;
 
@@ -87,7 +87,7 @@ fn average(measurements: &[Measurement]) -> Measurement {
 
 fn deserialise<'a>(path: PathBuf) -> Result<Vec<Measurement>, csv::Error> {
     let mut rdr = csv::Reader::from_path(&path).expect(&format!(
-        "Unable to open path: '{}'",
+        "Unable to open: '{}'",
         &path.to_str().unwrap_or("")
     ));
     rdr.deserialize()
