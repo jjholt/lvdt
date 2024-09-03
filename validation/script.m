@@ -34,18 +34,14 @@ end
 
 % %% Plotting
 % figure;
-%
-% % Plotting the average in blue
-% plot(chunk_time, avg_values, '-o', 'Color', 'blue', 'LineWidth', 2);
 % hold on;
 %
-% % Plotting the max and min in red
+% plot(chunk_time, avg_values, '-o', 'Color', 'blue', 'LineWidth', 2);
+%
 % plot(chunk_time, max_values, '-o', 'Color', 'red', 'LineWidth', 2);
 % plot(chunk_time, min_values, '-o', 'Color', 'red', 'LineWidth', 2);
 %
-% % Labels and title
-% xlabel('Time (s)');
-% ylabel('Voltage (mV)');
+% xlabel('Time (s)'); ylabel('Voltage (mV)');
 % title('Averages, Max, and Min of Voltage (mV) over Time');
 % legend('Average', 'Maxima');
 % grid on;
