@@ -1,3 +1,5 @@
+use serde::de::{self, Deserializer, Visitor, SeqAccess};
+use std::fmt;
 use nalgebra::{
     Isometry3, Point2, Point3, Translation3, UnitQuaternion,
     UnitVector3
@@ -67,7 +69,7 @@ impl Plane {
         Self { normal, points }
     }
 
-    pub fn isometry_to(&self, other: &Plane) -> Isometry3<f64> {
+    pub fn isometry_from(&self, other: &Plane) -> Isometry3<f64> {
         let rotation = {
             let axis = self.normal.cross(&other.normal);
             let angle = self.normal.dot(&other.normal).acos();
@@ -104,5 +106,35 @@ impl Plane {
         let v1 = points[2] - points[0];
         let v2 = points[1] - points[0];
         na::Unit::new_normalize(v1.cross(&v2))
+    }
+}
+
+impl<'de> Deserialize<'de> for Plane {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: Deserializer<'de>,
+    {
+        struct PlaneVisitor;
+
+        impl<'de> Visitor<'de> for PlaneVisitor {
+            type Value = Plane;
+
+            fn expecting(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
+                formatter.write_str("a sequence of 6 f64 values")
+            }
+
+            fn visit_seq<V>(self, mut seq: V) -> Result<Plane, V::Error>
+            where
+                V: SeqAccess<'de>,
+            {
+                let mut points = [0.0; 6];
+                for i in 0..6 {
+                    points[i] = seq.next_element()?.ok_or_else(|| de::Error::invalid_length(i, &self))?;
+                }
+                Ok(Plane::from_vec(&points))
+            }
+        }
+
+        deserializer.deserialize_seq(PlaneVisitor)
     }
 }

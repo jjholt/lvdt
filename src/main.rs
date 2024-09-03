@@ -3,14 +3,15 @@ extern crate approx;
 extern crate nalgebra as na;
 mod plane;
 use std::{
+    fs,
     io::{self, IsTerminal},
     path::PathBuf,
 };
 
 use clap::Parser;
-use na::Point2;
 use output::Output;
 use plane::{Measurement, Plane};
+use serde::Deserialize;
 mod plot;
 
 mod output;
@@ -25,15 +26,20 @@ struct Args {
     data: String,
 }
 
+#[derive(Deserialize)]
+struct Config {
+    screws: Plane,
+    implant: Plane,
+}
+
 fn main() {
     let args = Args::parse();
     let calibration = deserialise(args.calibration.into()).unwrap();
 
-    let base_plane = Plane::from_xy(&[
-        Point2::new(0.0, 0.0),
-        Point2::new(0.0, 10.0),
-        Point2::new(10.0, 0.0),
-    ]);
+    let yaml = fs::read_to_string("config.yaml").expect("Missing config.yaml file in root");
+    let config: Config = serde_yaml::from_str(&yaml).unwrap();
+    let base_plane = config.screws;
+    let implant_plane = config.implant;
 
     let plane = base_plane.new_reading(&average(&calibration));
 
@@ -41,10 +47,12 @@ fn main() {
 
     let input = new_input((&args.data).into());
     match input {
-        Ok(i) => i
+        Ok(measurement) => measurement
             .iter()
-            .map(|f| plane.new_reading(f))
-            .map(|f| plane.isometry_to(&f))
+            .map(|m| plane.new_reading(m))
+            .map(|p| plane.isometry_from(&p))
+            .map(|i| implant_plane.apply_isometry(&i))
+            .map(|p| implant_plane.isometry_from(&p))
             .map(|f| Output::new(&f))
             .for_each(|f| wtr.serialize(f).unwrap()),
         Err(err) => {
@@ -78,8 +86,10 @@ fn average(measurements: &[Measurement]) -> Measurement {
 }
 
 fn deserialise<'a>(path: PathBuf) -> Result<Vec<Measurement>, csv::Error> {
-    let mut rdr = csv::Reader::from_path(&path)
-        .expect(&format!("Unable to open path: '{}'", &path.to_str().unwrap_or("")));
+    let mut rdr = csv::Reader::from_path(&path).expect(&format!(
+        "Unable to open path: '{}'",
+        &path.to_str().unwrap_or("")
+    ));
     rdr.deserialize()
         .map(|result| result.map(|(a, b, c): (f64, f64, f64)| Measurement(a, b, c)))
         .try_collect()
@@ -103,6 +113,7 @@ mod test {
     use super::*;
     use approx::assert_relative_eq;
     use nalgebra as na;
+    use na::Point2;
     #[test]
     fn translation() {
         let plane = Plane::from_xy(&[
@@ -112,7 +123,7 @@ mod test {
         ]);
         let plane1 = plane.new_reading(&Measurement(1.0, 1.0, 1.0));
         let plane2 = plane.new_reading(&Measurement(1.3, 1.3, 1.3));
-        let isometry = plane1.isometry_to(&plane2).to_matrix();
+        let isometry = plane1.isometry_from(&plane2).to_matrix();
         let mut translation = na::Matrix4::identity();
         translation.m34 = 0.3;
 
@@ -148,9 +159,9 @@ mod test {
         let translation = plane.new_reading(&input[2]);
         // let rotation = plane.new_reading(&input[1]);
 
-        let isometry0 = plane.isometry_to(&plane1);
+        let isometry0 = plane.isometry_from(&plane1);
         assert_relative_eq!(isometry0, na::Isometry3::translation(0.0, 0.0, 0.0));
-        let isometry1 = plane.isometry_to(&translation);
+        let isometry1 = plane.isometry_from(&translation);
         assert_relative_eq!(isometry1, na::Isometry3::translation(0.0, 0.0, 0.3));
     }
 }

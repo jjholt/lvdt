@@ -10,3 +10,4 @@ nalgebra = "0.32.6"
 plotters = "0.3.6"
 serde = { version = "1.0.209", features = ["derive"] }
 clap = { version = "4.5.13", features = ["derive", "help", "suggestions", "usage"] }
+serde_yaml = "0.9.34"

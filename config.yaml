@@ -1,0 +1,14 @@
+# Screw positions
+screws: [
+  3.0, 0.0,
+  0.0, 10.0,
+  10.0, 0.0
+]
+
+# Implant positions of interest. Suggest the AP and medial extremes.
+implant: [
+  0.0, 0.0,
+  0.0, 5.0,
+  5.0, 0.0
+]
+
