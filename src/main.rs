@@ -39,9 +39,9 @@ fn main() {
     let yaml = fs::read_to_string("config.yaml").expect("Missing config.yaml file in root");
     let config: Config = serde_yaml::from_str(&yaml).unwrap();
     let base_plane = config.screws;
-    let implant_plane = config.implant;
+    let implant = config.implant;
 
-    let plane = base_plane.new_reading(&average(&calibration));
+    let screw = base_plane.new_reading(&average(&calibration));
 
     let mut wtr = csv::Writer::from_writer(io::stdout());
 
@@ -49,10 +49,10 @@ fn main() {
     match input {
         Ok(measurement) => measurement
             .iter()
-            .map(|m| plane.new_reading(m))
-            .map(|p| plane.isometry_from(&p))
-            .map(|i| implant_plane.apply_isometry(&i))
-            .map(|p| implant_plane.isometry_from(&p))
+            .map(|m| screw.new_reading(m))
+            .map(|p| screw.isometry_from(&p))
+            .map(|i| implant.apply_isometry(&i))
+            .map(|p| implant.isometry_from(&p))
             .map(|f| Output::new(&f))
             .for_each(|f| wtr.serialize(f).unwrap()),
         Err(err) => {
