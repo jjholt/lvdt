@@ -30,3 +30,15 @@ implant: [
   5.0, 0.0
 ]
 ```
+
+
+# Making the validation data manageable
+The following snippet uses awk to take every 10th line of each file. The code goes through all `.csv` in the current directory, finds a number in the title and uses that as a name for the new file.
+The original data is moved into a `raw` folder.
+```bash
+mkdir -p raw && ls *.csv | xargs -I {} sh -c '
+  file={}
+  number=$(echo "$file" | rg -oP "\d+")
+  awk "NR == 10" "$file" > "${number}.csv"
+ mv $file raw/'
+```
