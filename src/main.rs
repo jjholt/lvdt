@@ -1,4 +1,3 @@
-#![feature(iterator_try_collect)]
 extern crate approx;
 extern crate nalgebra as na;
 mod plane;
@@ -34,10 +33,12 @@ struct Config {
 
 fn main() {
     let args = Args::parse();
-    let calibration = deserialise(args.calibration.into()).expect("Calibration data could not be deserialised");
+    let calibration =
+        deserialise(args.calibration.into()).expect("Calibration data could not be deserialised");
 
     let yaml = fs::read_to_string("config.yaml").expect("Missing config.yaml file in root");
-    let config: Config = serde_yaml::from_str(&yaml).expect("Unable to deserialise the configuration file");
+    let config: Config =
+        serde_yaml::from_str(&yaml).expect("Unable to deserialise the configuration file");
     let base_plane = config.screws;
     let implant = config.implant;
 
@@ -90,9 +91,11 @@ fn deserialise<'a>(path: PathBuf) -> Result<Vec<Measurement>, csv::Error> {
         "Unable to open: '{}'",
         &path.to_str().unwrap_or("")
     ));
-    rdr.deserialize()
+    Ok(rdr
+        .deserialize()
         .map(|result| result.map(|(a, b, c): (f64, f64, f64)| Measurement(a, b, c)))
-        .try_collect()
+        .map(|f| f.unwrap())
+        .collect())
 }
 
 fn new_input(path: PathBuf) -> Result<Vec<Measurement>, csv::Error> {
@@ -100,11 +103,10 @@ fn new_input(path: PathBuf) -> Result<Vec<Measurement>, csv::Error> {
         deserialise(path)
     } else {
         let mut rdr = csv::Reader::from_reader(io::stdin());
-        let input: Result<Vec<Measurement>, csv::Error> = rdr
-            .deserialize()
+        Ok(rdr.deserialize()
             .map(|result| result.map(|(a, b, c): (f64, f64, f64)| Measurement(a, b, c)))
-            .try_collect();
-        input
+            .map(|f| f.unwrap())
+            .collect())
     }
 }
 
@@ -112,8 +114,8 @@ fn new_input(path: PathBuf) -> Result<Vec<Measurement>, csv::Error> {
 mod test {
     use super::*;
     use approx::assert_relative_eq;
-    use nalgebra as na;
     use na::Point2;
+    use nalgebra as na;
     #[test]
     fn translation() {
         let plane = Plane::from_xy(&[
