@@ -21,6 +21,12 @@ pub struct CartesianCoefficients {
     pub d: f64,
 }
 
+impl Measurement {
+    pub fn new(measurements: (f64, f64, f64)) -> Self {
+        let (x,y,z) = measurements;
+        Measurement(x, y, z)
+    }
+}
 impl Plane {
     // pub fn calibrate(points: [Point2<f64>; 3]) {}
 

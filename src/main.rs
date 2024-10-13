@@ -2,17 +2,17 @@ extern crate approx;
 extern crate nalgebra as na;
 
 use clap::Parser;
-use models::plane::Measurement;
-use output::Output;
+use csv::Reader;
 use std::{
     fs,
     io::{self, IsTerminal},
-    path::PathBuf,
+    path::Path,
 };
 mod plot;
 
 mod models;
-mod output;
+
+type Result<T> = std::result::Result<T, Box<dyn std::error::Error>>;
 
 #[derive(Debug, Parser)]
 struct Args {
@@ -26,12 +26,13 @@ struct Args {
 
 fn main() {
     let args = Args::parse();
-    let calibration =
-        deserialise(args.calibration.into()).expect("Calibration data could not be deserialised");
 
-    let yaml = fs::read_to_string("config.yaml").expect("Missing config.yaml file in root");
-    let config: models::config::Config =
-        serde_yaml::from_str(&yaml).expect("Unable to deserialise the configuration file");
+    let calibration = deserialise(Path::new(&args.calibration))
+        .unwrap_or_else(|e| panic!("Missing calibration file: {e:?}"));
+    let input = extract_input(Path::new(&args.data));
+
+    let config =
+        get_config("config.yaml").unwrap_or_else(|e| panic!("Unable to load configuration: {e:?}"));
     let base_plane = config.screws;
     let implant = config.implant;
 
@@ -39,7 +40,6 @@ fn main() {
 
     let mut wtr = csv::Writer::from_writer(io::stdout());
 
-    let input = new_input((&args.data).into());
     match input {
         Ok(measurement) => measurement
             .iter()
@@ -47,10 +47,10 @@ fn main() {
             .map(|p| screw.isometry_from(&p))
             .map(|i| implant.apply_isometry(&i))
             .map(|p| implant.isometry_from(&p))
-            .map(|f| Output::new(&f))
+            .map(|f| models::Output::new(&f))
             .for_each(|f| wtr.serialize(f).unwrap()),
         Err(err) => {
-            eprintln!("Unable to open input. {}: {}", &args.data, err);
+            eprintln!("Unable to open input -- {}: {}", &args.data, err);
             std::process::exit(1)
         }
     }
@@ -71,36 +71,41 @@ fn main() {
     // plot::plot("figures/rotation.svg", isometry2, coefficients).unwrap();
 }
 
-fn average(measurements: &[Measurement]) -> Measurement {
+fn get_config(path: &str) -> Result<models::Config> {
+    let yaml = fs::read_to_string(path)?;
+    Ok(serde_yaml::from_str(&yaml)?)
+}
+
+fn average(measurements: &[models::Measurement]) -> models::Measurement {
     let len = measurements.len() as f64;
     let v = measurements.iter().fold((0.0, 0.0, 0.0), |acc, m| {
         (acc.0 + m.0 / len, acc.1 + m.1 / len, acc.2 + m.2 / len)
     });
-    Measurement(v.0, v.1, v.2)
+    models::Measurement(v.0, v.1, v.2)
 }
 
-fn deserialise<'a>(path: PathBuf) -> Result<Vec<Measurement>, csv::Error> {
-    let mut rdr = csv::Reader::from_path(&path).expect(&format!(
-        "Unable to open: '{}'",
-        &path.to_str().unwrap_or("")
-    ));
-    Ok(rdr
-        .deserialize()
-        .map(|result| result.map(|(a, b, c): (f64, f64, f64)| Measurement(a, b, c)))
-        .map(|f| f.unwrap())
-        .collect())
+fn deserialise(path: &Path) -> Result<Vec<models::Measurement>> {
+    let rdr = csv::Reader::from_path(&path)?;
+    let measurements: Vec<models::Measurement> = deserialise_reader(rdr);
+    if measurements.is_empty() {
+        Err("No valid measurements found.".into())
+    } else {
+        Ok(measurements)
+    }
+}
+fn deserialise_reader<T: io::Read>(mut rdr: Reader<T>) -> Vec<models::Measurement> {
+    rdr.deserialize()
+        .filter_map(|f| f.ok()) //this is shit
+        .map(models::Measurement::new)
+        .collect()
 }
 
-fn new_input(path: PathBuf) -> Result<Vec<Measurement>, csv::Error> {
+fn extract_input(path: &Path) -> Result<Vec<models::Measurement>> {
     if io::stdin().is_terminal() {
         deserialise(path)
     } else {
-        let mut rdr = csv::Reader::from_reader(io::stdin());
-        Ok(rdr
-            .deserialize()
-            .map(|result| result.map(|(a, b, c): (f64, f64, f64)| Measurement(a, b, c)))
-            .map(|f| f.unwrap())
-            .collect())
+        let rdr = csv::Reader::from_reader(io::stdin());
+        Ok(deserialise_reader(rdr))
     }
 }
 
@@ -108,7 +113,8 @@ fn new_input(path: PathBuf) -> Result<Vec<Measurement>, csv::Error> {
 mod test {
     use super::*;
     use approx::assert_relative_eq;
-    use models::plane::Plane;
+    use models::Measurement;
+    use models::Plane;
     use na::Point2;
     use nalgebra as na;
     #[test]
@@ -131,7 +137,7 @@ mod test {
     fn reads_calibration() {
         // let mut rdr = csv::Reader::from_reader(rdr)
         let calibration =
-            deserialise("calibration.csv".into()).expect("Unable to start calibration");
+            deserialise(Path::new("calibration.csv")).expect("Unable to start calibration");
         let test = [
             Measurement(1.0, 1.0, 1.0),
             Measurement(1.05, 1.0, 1.0),
