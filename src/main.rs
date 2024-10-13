@@ -1,18 +1,18 @@
 extern crate approx;
 extern crate nalgebra as na;
 
+use clap::Parser;
+use models::plane::Measurement;
+use output::Output;
 use std::{
     fs,
     io::{self, IsTerminal},
     path::PathBuf,
 };
-use clap::Parser;
-use output::Output;
-use models::plane::{Measurement, Plane};
 mod plot;
 
-mod output;
 mod models;
+mod output;
 
 #[derive(Debug, Parser)]
 struct Args {
@@ -27,13 +27,11 @@ struct Args {
 fn main() {
     let args = Args::parse();
     let calibration =
-        deserialise(args.calibration.into())
-            .expect("Calibration data could not be deserialised");
+        deserialise(args.calibration.into()).expect("Calibration data could not be deserialised");
 
-    let yaml = fs::read_to_string("config.yaml")
-        .expect("Missing config.yaml file in root");
-    let config: models::config::Config = serde_yaml::from_str(&yaml)
-            .expect("Unable to deserialise the configuration file");
+    let yaml = fs::read_to_string("config.yaml").expect("Missing config.yaml file in root");
+    let config: models::config::Config =
+        serde_yaml::from_str(&yaml).expect("Unable to deserialise the configuration file");
     let base_plane = config.screws;
     let implant = config.implant;
 
@@ -110,6 +108,7 @@ fn new_input(path: PathBuf) -> Result<Vec<Measurement>, csv::Error> {
 mod test {
     use super::*;
     use approx::assert_relative_eq;
+    use models::plane::Plane;
     use na::Point2;
     use nalgebra as na;
     #[test]
