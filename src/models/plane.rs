@@ -6,6 +6,13 @@ use std::fmt;
 #[derive(PartialEq, Debug, Serialize, Deserialize)]
 pub struct Measurement(pub f64, pub f64, pub f64);
 
+impl Measurement {
+    pub fn new(measurements: (f64, f64, f64)) -> Measurement {
+        let (x, y, z) = measurements;
+        Measurement(x, y, z)
+    }
+}
+
 #[derive(Debug)]
 pub struct Plane {
     // pub plane: Matrix3<f64>,

@@ -1,5 +1,5 @@
-use serde::Deserialize;
 use crate::models::plane::Plane;
+use serde::Deserialize;
 
 #[derive(Deserialize)]
 pub(crate) struct Config {

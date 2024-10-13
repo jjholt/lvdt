@@ -1,18 +1,22 @@
 extern crate approx;
 extern crate nalgebra as na;
 
+use crate::models::config::Config;
 use clap::Parser;
+use csv::{Error, Reader};
+use models::output::Output;
 use models::plane::Measurement;
-use output::Output;
+use std::fs::File;
+use std::io::Stdin;
 use std::{
     fs,
     io::{self, IsTerminal},
     path::PathBuf,
 };
+
 mod plot;
 
 mod models;
-mod output;
 
 #[derive(Debug, Parser)]
 struct Args {
@@ -25,21 +29,19 @@ struct Args {
 }
 
 fn main() {
-    let args = Args::parse();
-    let calibration =
-        deserialise(args.calibration.into()).expect("Calibration data could not be deserialised");
-
-    let yaml = fs::read_to_string("config.yaml").expect("Missing config.yaml file in root");
-    let config: models::config::Config =
-        serde_yaml::from_str(&yaml).expect("Unable to deserialise the configuration file");
+    let (calibration, data) = parse_args();
+    let config = get_config();
     let base_plane = config.screws;
     let implant = config.implant;
 
-    let screw = base_plane.new_reading(&average(&calibration));
+    let input = extract_input((&data).into());
+
+    let measurements =
+        deserialise(calibration.into()).expect("Calibration data could not be deserialised");
+    let screw = base_plane.new_reading(&average(&measurements));
 
     let mut wtr = csv::Writer::from_writer(io::stdout());
 
-    let input = new_input((&args.data).into());
     match input {
         Ok(measurement) => measurement
             .iter()
@@ -50,7 +52,7 @@ fn main() {
             .map(|f| Output::new(&f))
             .for_each(|f| wtr.serialize(f).unwrap()),
         Err(err) => {
-            eprintln!("Unable to open input. {}: {}", &args.data, err);
+            eprintln!("Unable to open input. {}: {}", &data, err);
             std::process::exit(1)
         }
     }
@@ -71,6 +73,20 @@ fn main() {
     // plot::plot("figures/rotation.svg", isometry2, coefficients).unwrap();
 }
 
+fn parse_args() -> (String, String) {
+    let args = Args::parse();
+    let calibration = args.calibration;
+    let data = args.data;
+    (calibration, data)
+}
+
+fn get_config() -> Config {
+    let yaml = fs::read_to_string("config.yaml").expect("Missing config.yaml file in root");
+    let config: Config =
+        serde_yaml::from_str(&yaml).expect("Unable to deserialise the configuration file");
+    config
+}
+
 fn average(measurements: &[Measurement]) -> Measurement {
     let len = measurements.len() as f64;
     let v = measurements.iter().fold((0.0, 0.0, 0.0), |acc, m| {
@@ -79,29 +95,34 @@ fn average(measurements: &[Measurement]) -> Measurement {
     Measurement(v.0, v.1, v.2)
 }
 
-fn deserialise<'a>(path: PathBuf) -> Result<Vec<Measurement>, csv::Error> {
-    let mut rdr = csv::Reader::from_path(&path).expect(&format!(
-        "Unable to open: '{}'",
-        &path.to_str().unwrap_or("")
-    ));
+fn deserialise<'a>(path: PathBuf) -> Result<Vec<Measurement>, Error> {
+    let rdr = csv::Reader::from_path(&path)
+        .unwrap_or_else(|_| panic!("Unable to open: '{}'", &path.to_str().unwrap_or("")));
+    deserialise_file(rdr)
+}
+
+fn deserialise_file(mut rdr: Reader<File>) -> Result<Vec<Measurement>, Error> {
     Ok(rdr
         .deserialize()
-        .map(|result| result.map(|(a, b, c): (f64, f64, f64)| Measurement(a, b, c)))
+        .map(|result| result.map(Measurement::new))
         .map(|f| f.unwrap())
         .collect())
 }
 
-fn new_input(path: PathBuf) -> Result<Vec<Measurement>, csv::Error> {
+fn extract_input(path: PathBuf) -> Result<Vec<Measurement>, Error> {
     if io::stdin().is_terminal() {
         deserialise(path)
     } else {
-        let mut rdr = csv::Reader::from_reader(io::stdin());
-        Ok(rdr
-            .deserialize()
-            .map(|result| result.map(|(a, b, c): (f64, f64, f64)| Measurement(a, b, c)))
-            .map(|f| f.unwrap())
-            .collect())
+        deserialise_input(Reader::from_reader(io::stdin()))
     }
+}
+
+fn deserialise_input(mut rdr: Reader<Stdin>) -> Result<Vec<Measurement>, Error> {
+    Ok(rdr
+        .deserialize()
+        .map(|result| result.map(Measurement::new))
+        .map(|f| f.unwrap())
+        .collect())
 }
 
 #[cfg(test)]
