@@ -13,7 +13,6 @@ mod plot;
 mod models;
 
 type Result<T> = std::result::Result<T, Box<dyn std::error::Error>>;
-
 #[derive(Debug, Parser)]
 struct Args {
     /// Calibration data
@@ -76,12 +75,13 @@ fn get_config(path: &str) -> Result<models::Config> {
     Ok(serde_yaml::from_str(&yaml)?)
 }
 
+
 fn average(measurements: &[models::Measurement]) -> models::Measurement {
     let len = measurements.len() as f64;
     let v = measurements.iter().fold((0.0, 0.0, 0.0), |acc, m| {
         (acc.0 + m.0 / len, acc.1 + m.1 / len, acc.2 + m.2 / len)
     });
-    models::Measurement(v.0, v.1, v.2)
+    models::Measurement::new(v) 
 }
 
 fn deserialise(path: &Path) -> Result<Vec<models::Measurement>> {
