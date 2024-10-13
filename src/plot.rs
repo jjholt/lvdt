@@ -1,7 +1,7 @@
 use nalgebra::{Isometry3, Point3};
 use plotters::prelude::*;
 
-use crate::plane::CartesianCoefficients;
+use crate::models::plane::CartesianCoefficients;
 
 #[allow(unused)]
 pub fn plot(

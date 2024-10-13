@@ -1,19 +1,18 @@
 extern crate approx;
 extern crate nalgebra as na;
-mod plane;
+
 use std::{
     fs,
     io::{self, IsTerminal},
     path::PathBuf,
 };
-
 use clap::Parser;
 use output::Output;
-use plane::{Measurement, Plane};
-use serde::Deserialize;
+use models::plane::{Measurement, Plane};
 mod plot;
 
 mod output;
+mod models;
 
 #[derive(Debug, Parser)]
 struct Args {
@@ -25,20 +24,16 @@ struct Args {
     data: String,
 }
 
-#[derive(Deserialize)]
-struct Config {
-    screws: Plane,
-    implant: Plane,
-}
-
 fn main() {
     let args = Args::parse();
     let calibration =
-        deserialise(args.calibration.into()).expect("Calibration data could not be deserialised");
+        deserialise(args.calibration.into())
+            .expect("Calibration data could not be deserialised");
 
-    let yaml = fs::read_to_string("config.yaml").expect("Missing config.yaml file in root");
-    let config: Config =
-        serde_yaml::from_str(&yaml).expect("Unable to deserialise the configuration file");
+    let yaml = fs::read_to_string("config.yaml")
+        .expect("Missing config.yaml file in root");
+    let config: models::config::Config = serde_yaml::from_str(&yaml)
+            .expect("Unable to deserialise the configuration file");
     let base_plane = config.screws;
     let implant = config.implant;
 
@@ -103,7 +98,8 @@ fn new_input(path: PathBuf) -> Result<Vec<Measurement>, csv::Error> {
         deserialise(path)
     } else {
         let mut rdr = csv::Reader::from_reader(io::stdin());
-        Ok(rdr.deserialize()
+        Ok(rdr
+            .deserialize()
             .map(|result| result.map(|(a, b, c): (f64, f64, f64)| Measurement(a, b, c)))
             .map(|f| f.unwrap())
             .collect())
@@ -131,6 +127,7 @@ mod test {
 
         assert_relative_eq!(isometry, translation);
     }
+
     #[test]
     fn reads_calibration() {
         // let mut rdr = csv::Reader::from_reader(rdr)

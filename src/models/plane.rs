@@ -1,10 +1,7 @@
-use serde::de::{self, Deserializer, Visitor, SeqAccess};
-use std::fmt;
-use nalgebra::{
-    Isometry3, Point2, Point3, Translation3, UnitQuaternion,
-    UnitVector3
-};
+use nalgebra::{Isometry3, Point2, Point3, Translation3, UnitQuaternion, UnitVector3};
+use serde::de::{self, Deserializer, SeqAccess, Visitor};
 use serde::{Deserialize, Serialize};
+use std::fmt;
 
 #[derive(PartialEq, Debug, Serialize, Deserialize)]
 pub struct Measurement(pub f64, pub f64, pub f64);
@@ -129,7 +126,9 @@ impl<'de> Deserialize<'de> for Plane {
             {
                 let mut points = [0.0; 6];
                 for i in 0..6 {
-                    points[i] = seq.next_element()?.ok_or_else(|| de::Error::invalid_length(i, &self))?;
+                    points[i] = seq
+                        .next_element()?
+                        .ok_or_else(|| de::Error::invalid_length(i, &self))?;
                 }
                 Ok(Plane::from_vec(&points))
             }
