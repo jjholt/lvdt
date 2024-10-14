@@ -49,6 +49,7 @@ impl Plane {
         }
     }
 
+    #[allow(dead_code)]
     /// Creates a plane from a slice of Point2. The resulting Plane has z-coordinate of zero.
     pub fn from_xy(points: &[Point2<f64>; 3]) -> Self {
         let points3: Vec<Point3<f64>> = points.iter().map(|c| Point3::new(c.x, c.y, 0.0)).collect();
